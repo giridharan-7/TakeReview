@@ -1,6 +1,6 @@
 
-const signin = async (req, res) => {
-    return true;
+const signup = async (req, res) => {
+    
 }
 
 const login = async (req, res) => {
@@ -12,7 +12,7 @@ const verify = async (req, res) => {
 }
 
 module.exports = {
-    signin,
+    signup,
     verify,
     login
 }
