@@ -49,15 +49,54 @@ const signup = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
 
+        return res.json({success: true, message: 'User created successfully'})
+
     } catch (error){
         await transaction.rollback();
-        res.json({success: false, message: error.message})
+        return res.json({success: false, message: error.message})
     }
 
 }
 
 const login = async (req, res) => {
-    return true;
+    const { email, password } = req.body;
+
+    const transaction = sequelize.transaction();
+
+    try{
+
+        const user = await Account.findOne({where : {email}});
+        if(!user){
+            res.json({success: false, message: 'User Not Found'});
+        }
+
+        if(!user.is_verified){
+            res.json({success: false, message: 'User Not verified'});
+        }
+
+        const isValid = await bcrypt.compare(password, user.password);
+
+        if(!isValid){
+            res.json({success: false, message: 'Invalid Password'})
+        }
+
+        const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7d'});
+
+        await transaction.commit();
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        })
+
+        return res.json({success: true, message: 'User is validated successfully'})
+
+    } catch (error){
+        await transaction.rollback();
+        return res.json({success: false, message: error.message})
+    }
 }
 
 const verify = async (req, res) => {
