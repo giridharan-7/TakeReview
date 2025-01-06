@@ -8,7 +8,7 @@ const sequelize = new sequelize('TakeReview', 'Giridharan', 'Giridev1729!', {
 })
 
 const Account = AccountModel(sequelize, Datatypes);
-const UserOtp = AccountModel(sequelize, Datatypes);
+const UserOtp = UserOtpModel(sequelize, Datatypes);
 
 UserOtp.belongsTo(Account, { foreignKey: 'account_id' });
 

@@ -1,7 +1,9 @@
 const { sequelize } = require('sequelize');
 const Account = require('../models/account')
+const UserOtp = require('../models/user_otp')
 const bcrypt = require('bcrypt')
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const { default: transporter } = require('../config/nodemailer');
 require('dotenv').config();
 
 const signup = async (req, res) => {
@@ -48,6 +50,15 @@ const signup = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
+
+        const mailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: email,
+            subject: 'Welcome to TakeReview',
+            text: `Welcome to TakeReview. Your account is created with emailid ${email}`
+        }
+
+        await transporter.sendMail(mailOptions);
 
         return res.json({success: true, message: 'User created successfully'})
 
@@ -99,12 +110,102 @@ const login = async (req, res) => {
     }
 }
 
-const verify = async (req, res) => {
-    return true;
+const sendVerificationOtp = async (req, res) => {
+    const {userId} = req.body;
+
+    try{
+        const user = Account.findOne({
+            where: {id: userId},
+            includes: [{
+                model: UserOtp
+            }]
+        })
+    
+        if(user.is_verified){
+            return res.json({success: false, message: 'User is already verified'});
+        }
+    
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
+    
+        const updateUserOtp = UserOtp.create(
+            {
+                account_id: userId,
+                otp,
+                deleted_at : Date.now() + 24 * 60 * 60 * 1000
+            }
+        )
+    
+        if(!updateUserOtp){
+            return res.json({success: false, message: 'Unable to create otp at the moment'});
+        }
+    
+        const mailOption = {
+            from: process.env.SENDER_EMAIL,
+            to: user.email,
+            subject: 'TakeReview account verification',
+            text: `Your OTP is ${otp}. Verify your account using this OTP`
+        }
+    
+        await WebTransportError.sendMail(mailOption);
+    
+        res.json({ success: true, message: 'Verification mail is send to the user'});
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+const verifyEmail = async (req, res) => {
+    const {userId, otp} = req.body;
+
+    if(!userId || !otp) {
+        return res.json({success: false, message: 'Missing Details'});
+    }
+
+    try{
+
+        const user = Account.findOne({
+            where: {id: userId},
+            includes: [{
+                model: UserOtp
+            }]
+        })
+
+        if(!user){
+            return res.json({success: false, message: 'User not found'});
+        }
+
+        if(user.otp === '' || user.otp !== otp){
+            return res.json({success: false, message: 'Otp is invalid'});
+        }
+
+        if(user.deleted_at < Date.now()){
+            return res.json({success: false, message: 'Otp is expired'});
+        }
+
+        const account = Account.update(
+            {is_verified: true},
+            {
+                where: {
+                    id:userId
+                },
+            },
+        )
+
+        if(!account){
+            return res.json({success: false, message: 'Unable to verify account'});
+        }
+
+        return res.json({success: true, message: 'Account is verified successfully'});
+
+
+    } catch (error){
+        return res.json({success: false, message: error.message})
+    }
 }
 
 module.exports = {
     signup,
-    verify,
-    login
+    login,
+    sendVerificationOtp,
+    verifyEmail
 }
