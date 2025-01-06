@@ -25,6 +25,5 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'user_otp',
         timestamps: false
     });
-
     return UserOtp;
 };

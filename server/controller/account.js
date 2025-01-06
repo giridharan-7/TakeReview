@@ -1,4 +1,4 @@
-const { sequelize } = require('sequelize');
+const {Sequelize} = require('sequelize');
 const Account = require('../models/account')
 const UserOtp = require('../models/user_otp')
 const bcrypt = require('bcrypt')
@@ -10,7 +10,7 @@ const signup = async (req, res) => {
     
     const { username, email, password } = req.body;
 
-    const transaction = await sequelize.transaction();
+    const transaction = await Sequelize.transaction();
 
     try {
         if(!username || !email || !password){
@@ -72,7 +72,7 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     const { email, password } = req.body;
 
-    const transaction = sequelize.transaction();
+    const transaction = Sequelize.transaction();
 
     try{
 
@@ -199,9 +199,11 @@ const verifyEmail = async (req, res) => {
 
 
     } catch (error){
-        return res.json({success: false, message: error.message})
+        return res.json({success: false, message: error.message});
     }
 }
+
+
 
 module.exports = {
     signup,
