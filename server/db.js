@@ -12,7 +12,7 @@ const UserOtp = UserOtpModel(sequelize, DataTypes);
 
 UserOtp.belongsTo(Account, { foreignKey: 'account_id' });
 
-sequelize.sync({ alter:true })
+sequelize.sync({ force:false })
     .then(() => {
         console.log("Database is connected");
     }).catch((error) => {
