@@ -1,16 +1,15 @@
-const {Sequelize} = require('sequelize');
-const Account = require('../models/account')
-const UserOtp = require('../models/user_otp')
+const {sequelize} = require('../models/db');
+const {Account, UserOtp} = require('../models/db.js');
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken');
-const { default: transporter } = require('../config/nodemailer');
-require('dotenv').config();
+const { transporter } = require('../config/nodemailer');
+require("dotenv").config({ path: require('find-config')('.env') })
 
 const signup = async (req, res) => {
     
     const { username, email, password } = req.body;
 
-    const transaction = await Sequelize.transaction();
+    const transaction = await sequelize.transaction();
 
     try {
         if(!username || !email || !password){
@@ -42,7 +41,7 @@ const signup = async (req, res) => {
 
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7d'});
 
-        await transaction.commit();
+        
 
         res.cookie('token', token, {
             httpOnly: true,
@@ -60,6 +59,8 @@ const signup = async (req, res) => {
 
         await transporter.sendMail(mailOptions);
 
+        await transaction.commit();
+
         return res.json({success: true, message: 'User created successfully'})
 
     } catch (error){
@@ -72,7 +73,7 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
     const { email, password } = req.body;
 
-    const transaction = Sequelize.transaction();
+    const transaction = await sequelize.transaction();
 
     try{
 
@@ -93,7 +94,7 @@ const login = async (req, res) => {
 
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7d'});
 
-        await transaction.commit();
+        
 
         res.cookie('token', token, {
             httpOnly: true,
@@ -101,6 +102,8 @@ const login = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
+
+        await transaction.commit();
 
         return res.json({success: true, message: 'User is validated successfully'})
 
@@ -113,28 +116,30 @@ const login = async (req, res) => {
 const sendVerificationOtp = async (req, res) => {
     const {userId} = req.body;
 
+    const transaction = await sequelize.transaction();
+
     try{
-        const user = Account.findOne({
+        const user = await Account.findOne({
             where: {id: userId},
-            includes: [{
-                model: UserOtp
-            }]
         })
-    
-        if(user.is_verified){
+
+        const conditon = user.dataValues.is_verified;
+
+        if(conditon === "true"){
+            console.log(conditon)
             return res.json({success: false, message: 'User is already verified'});
         }
     
         const otp = String(Math.floor(100000 + Math.random() * 900000));
     
-        const updateUserOtp = UserOtp.create(
+        const updateUserOtp = await UserOtp.create(
             {
                 account_id: userId,
                 otp,
-                deleted_at : Date.now() + 24 * 60 * 60 * 1000
+                expired_at : Date.now() + 24 * 60 * 60 * 1000
             }
         )
-    
+
         if(!updateUserOtp){
             return res.json({success: false, message: 'Unable to create otp at the moment'});
         }
@@ -146,10 +151,13 @@ const sendVerificationOtp = async (req, res) => {
             text: `Your OTP is ${otp}. Verify your account using this OTP`
         }
     
-        await WebTransportError.sendMail(mailOption);
+        await transporter.sendMail(mailOption);
+
+        await transaction.commit();
     
-        res.json({ success: true, message: 'Verification mail is send to the user'});
+        return res.json({ success: true, message: 'Verification mail is send to the user'});
     } catch (error) {
+        await transaction.rollback();
         res.json({ success: false, message: error.message });
     }
 }
@@ -161,8 +169,9 @@ const verifyEmail = async (req, res) => {
         return res.json({success: false, message: 'Missing Details'});
     }
 
-    try{
+    const transaction = await sequelize.transaction();
 
+    try{
         const user = Account.findOne({
             where: {id: userId},
             includes: [{
@@ -182,7 +191,7 @@ const verifyEmail = async (req, res) => {
             return res.json({success: false, message: 'Otp is expired'});
         }
 
-        const account = Account.update(
+        const account = account.update(
             {is_verified: true},
             {
                 where: {
@@ -195,15 +204,16 @@ const verifyEmail = async (req, res) => {
             return res.json({success: false, message: 'Unable to verify account'});
         }
 
+        await transaction.commit();
+
         return res.json({success: true, message: 'Account is verified successfully'});
 
 
     } catch (error){
+        await transaction.rollback();
         return res.json({success: false, message: error.message});
     }
 }
-
-
 
 module.exports = {
     signup,

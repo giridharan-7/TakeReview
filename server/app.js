@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const webRouter = require('./routes/account');
 const reviewRouter = require('./routes/profile');
-const {sequelize} = require('./db')
+const {sequelize} = require('./models/db.js')
 
 const app = express();
 
