@@ -94,8 +94,6 @@ const login = async (req, res) => {
 
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7d'});
 
-        
-
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -172,12 +170,10 @@ const verifyEmail = async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try{
-        const user = Account.findOne({
-            where: {id: userId},
-            includes: [{
-                model: UserOtp
-            }]
-        })
+        
+        const user = await UserOtp.findOne({
+            where: { account_id: userId },
+        });
 
         if(!user){
             return res.json({success: false, message: 'User not found'});
@@ -187,11 +183,11 @@ const verifyEmail = async (req, res) => {
             return res.json({success: false, message: 'Otp is invalid'});
         }
 
-        if(user.deleted_at < Date.now()){
+        if(user.expired_at < Date.now()){
             return res.json({success: false, message: 'Otp is expired'});
         }
 
-        const account = account.update(
+        const account = await Account.update(
             {is_verified: true},
             {
                 where: {
@@ -207,7 +203,6 @@ const verifyEmail = async (req, res) => {
         await transaction.commit();
 
         return res.json({success: true, message: 'Account is verified successfully'});
-
 
     } catch (error){
         await transaction.rollback();
