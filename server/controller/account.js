@@ -3,6 +3,7 @@ const {Account, UserOtp} = require('../models/db.js');
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken');
 const { transporter } = require('../config/nodemailer');
+const api_key_generator = require('../helper/account.js');
 require("dotenv").config({ path: require('find-config')('.env') })
 
 const signup = async (req, res) => {
@@ -79,17 +80,17 @@ const login = async (req, res) => {
 
         const user = await Account.findOne({where : {email}});
         if(!user){
-            res.json({success: false, message: 'User Not Found'});
+            return res.json({success: false, message: 'User Not Found'});
         }
 
         if(!user.is_verified){
-            res.json({success: false, message: 'User Not verified'});
+            return res.json({success: false, message: 'User Not verified'});
         }
 
         const isValid = await bcrypt.compare(password, user.password);
 
         if(!isValid){
-            res.json({success: false, message: 'Invalid Password'})
+            return res.json({success: false, message: 'Invalid Password'})
         }
 
         const token = jwt.sign({id: user.id}, process.env.JWT_SECRET, {expiresIn: '7d'});
@@ -103,7 +104,7 @@ const login = async (req, res) => {
 
         await transaction.commit();
 
-        return res.json({success: true, message: 'User is validated successfully'})
+        return res.json({success: true, message: 'User is logged in successfully'})
 
     } catch (error){
         await transaction.rollback();
@@ -187,8 +188,14 @@ const verifyEmail = async (req, res) => {
             return res.json({success: false, message: 'Otp is expired'});
         }
 
+        const userKey = await api_key_generator();
+
         const account = await Account.update(
-            {is_verified: true},
+            {
+                is_verified: true,
+                api_key: userKey
+            },
+
             {
                 where: {
                     id:userId

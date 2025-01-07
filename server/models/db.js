@@ -24,6 +24,10 @@ const Account = sequelize.define('Account', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    api_key: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     is_verified: {
         type: DataTypes.STRING,
         defaultValue: false
