@@ -124,7 +124,7 @@ const sendVerificationOtp = async (req, res) => {
 
         const conditon = user.dataValues.is_verified;
 
-        if(conditon === "true"){
+        if(conditon){
             console.log(conditon)
             return res.json({success: false, message: 'User is already verified'});
         }

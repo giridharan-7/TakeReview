@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/", webRouter);
-// app.use("/", reviewRouter);
+app.use("/api/v1/profile", reviewRouter);
 
 app.listen(3000, () => {
     console.log("Server running on the port 3000")
