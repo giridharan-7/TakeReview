@@ -1,6 +1,6 @@
 const { Platform, Account } = require("../models/db");
 
-const RABBITMQ_URL = 'amqp://localhost';  // rabitmq url
+const RABBITMQ_URL = 'amqp://localhost';
 const QUEUE_NAME = 'platform_jobs';
 
 async function connectRabbitMq() {
