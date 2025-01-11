@@ -7,6 +7,8 @@ import asyncio
 async def main(platform_name, platform_link):
     # Initialize the LLM
     llm = ChatOpenAI(model="gpt-4o")
+
+    print(platform_name, platform_link)
     
     # Define the task dynamically
     task = f"""
@@ -21,7 +23,19 @@ async def main(platform_name, platform_link):
     # Create and run the Agent
     agent = Agent(task=task, llm=llm)
     result = await agent.run()
-    print(json.dumps(result))  # Print the result as JSON for Node.js
+
+    # Ensure the result is JSON-serializable
+    if isinstance(result, dict):
+        # If it's already a dictionary, pass it directly
+        serialized_result = result
+    else:
+        # Otherwise, extract JSON-serializable content
+        serialized_result = {
+            "history": [str(item) for item in result.history],  # Example of serializing custom objects
+            "output": str(result.output) if hasattr(result, "output") else None
+        }
+
+    print(json.dumps(serialized_result))  # Print the result as JSON for Node.js
 
 if __name__ == "__main__":
     # Read input from Node.js (platform_name, platform_link)

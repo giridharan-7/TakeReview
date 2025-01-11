@@ -3,9 +3,11 @@ const connectRabbitMq = require("../queue/messageSender");
 
 const { spawn } = require("child_process");
 
+const QUEUE_NAME = 'platform_jobs';
+
 const addPlatform = async (req, res) => {
     const { platformName, platformLink, instantCount } = req.body;
-    const { api_key } = req.headers['api_key'];
+    const api_key = req.headers['api_key'];
     if(!api_key) {
         return res.json({ success: true, message: 'Missing api key in headers'});
     }
@@ -66,11 +68,12 @@ const getReviews = async (req, res) => {
 }
 
 const fetchReviewsForPlatform = async (platformData) => {
-    const { platformName, platformLink } = platformData;
+    const platformName = platformData.platformName;
+    const platformLink = platformData.platformLink;
 
     return new Promise((resolve, reject) => {
         try {
-            const pythonProcess = spawn("python3", ["browserUse.py", platformName, platformLink]);
+            const pythonProcess = spawn("python3", ["agent/browserUse.py", platformName, platformLink]);
 
             let result = "";
             let errorOutput = "";
@@ -89,6 +92,8 @@ const fetchReviewsForPlatform = async (platformData) => {
                 }
 
                 try {
+                    console.log(result)
+                    console.log("----------++++++")
                     const reviews = JSON.parse(result.trim());
                     resolve(reviews);
                 } catch (parseError) {

@@ -83,13 +83,11 @@ const Platform = sequelize.define('Platform', {
         autoIncrement: true
     },
     account_id: {
-        account_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: Account,
-                key: 'id',
-            },
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Account,
+            key: 'id',
         },
     },
     platform_name: {
@@ -97,7 +95,7 @@ const Platform = sequelize.define('Platform', {
         allowNull: false
     },
     platform_link: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(1000),
         allowNull: false
     },
     instant_count: {
@@ -122,7 +120,7 @@ UserOtp.belongsTo(Account, { foreignKey: 'account_id' });
 
 Platform.belongsTo(Account, { foreignKey: 'account_id' });
 
-sequelize.sync({ force: true })
+sequelize.sync({ force: false })
     .then(() => console.log('Database connected'))
     .catch((error) => console.error('Database connection error:', error));
 

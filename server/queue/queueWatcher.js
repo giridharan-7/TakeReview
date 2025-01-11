@@ -1,6 +1,6 @@
+const { fetchReviewsForPlatform } = require("../controller/platform");
 const connectRabbitMq = require("./messageSender");
 
-const RABBITMQ_URL = 'amqp://localhost';
 const QUEUE_NAME = 'platform_jobs';
 
 async function watchQueue() {
@@ -10,7 +10,7 @@ async function watchQueue() {
             QUEUE_NAME,
             async (message) => {
                 if (message !== null){
-                    const platformData = message.content.toString();
+                    const platformData = JSON.parse(message.content.toString());
 
                     await fetchReviewsForPlatform(platformData);
 
@@ -25,4 +25,4 @@ async function watchQueue() {
     }
 }
 
-watchQueue();
+module.exports = watchQueue;
