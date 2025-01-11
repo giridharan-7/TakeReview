@@ -1,5 +1,7 @@
 const { Platform, Account } = require("../models/db");
-const connectRabbitMq = require("./sender");
+const connectRabbitMq = require("../queue/messageSender");
+
+const { spawn } = require("child_process");
 
 const addPlatform = async (req, res) => {
     const { platformName, platformLink, instantCount } = req.body;
@@ -63,7 +65,44 @@ const getReviews = async (req, res) => {
     }
 }
 
+const fetchReviewsForPlatform = async (platformData) => {
+    const { platformName, platformLink } = platformData;
+
+    return new Promise((resolve, reject) => {
+        try {
+            const pythonProcess = spawn("python3", ["browserUse.py", platformName, platformLink]);
+
+            let result = "";
+            let errorOutput = "";
+
+            pythonProcess.stdout.on("data", (data) => {
+                result += data.toString();
+            });
+
+            pythonProcess.stderr.on("data", (data) => {
+                errorOutput += data.toString();
+            });
+
+            pythonProcess.on("close", (code) => {
+                if (code !== 0) {
+                    return reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
+                }
+
+                try {
+                    const reviews = JSON.parse(result.trim());
+                    resolve(reviews);
+                } catch (parseError) {
+                    reject(new Error(`Failed to parse Python output: ${parseError.message}`));
+                }
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
 module.exports = {
     addPlatform,
-    getReviews
+    getReviews,
+    fetchReviewsForPlatform,
 }
