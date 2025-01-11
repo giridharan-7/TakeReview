@@ -1,40 +1,20 @@
 const { Platform, Account } = require("../models/db");
-
-const RABBITMQ_URL = 'amqp://localhost';
-const QUEUE_NAME = 'platform_jobs';
-
-async function connectRabbitMq() {
-    try {
-        const connection = await amqp.connect(RABBITMQ_URL);
-        const channel = await connection.createChannel();
-        await channel.assertQueue(QUEUE_NAME, { durable: true });
-        return channel;
-    } catch (error) {
-        console.error('RabbitMQ Connection Error', error);
-        throw error
-    }
-} 
-
+const connectRabbitMq = require("./sender");
 
 const addPlatform = async (req, res) => {
     const { platformName, platformLink, instantCount } = req.body;
-
     const { api_key } = req.headers['api_key'];
-
     if(!api_key) {
         return res.json({ success: true, message: 'Missing api key in headers'});
     }
 
     try {
-            
         const account = await Account.findOne({
             where: { api_key }
         })
-    
         if(!account) {
             return res.json({ success: true, message: 'Not authorised user'});
         }
-
         const platform = await Platform.create(
             {
                 account_id: account.id,
@@ -43,7 +23,6 @@ const addPlatform = async (req, res) => {
                 instant_count: instantCount,
             }
         )
-
         const channel = await connectRabbitMq();
 
         const jobPayload = {
@@ -57,17 +36,15 @@ const addPlatform = async (req, res) => {
         channel.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(jobPayload)), {
             persistent: true,
         });
+
         console.log('Job added to queue:', jobPayload);
 
-        // add the platform as a job rabbitmq to the queue
-
-        // return platform id
+        return platform.id;
 
     } catch (error) {
         console.error('Error in adding platform link to database', error);
         throw error
     }
-
 }
 
 const getReviews = async (req, res) => {
