@@ -73,7 +73,9 @@ const fetchReviewsForPlatform = async (platformData) => {
 
     return new Promise((resolve, reject) => {
         try {
+            console.log("Control going to browser-use ___________")
             const pythonProcess = spawn("python3", ["agent/browserUse.py", platformName, platformLink]);
+            console.log("Control ends here")
 
             let result = "";
             let errorOutput = "";
