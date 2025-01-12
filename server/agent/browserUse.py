@@ -1,7 +1,7 @@
 import sys
 import json
 import asyncio
-from langchain_google_vertexai import ChatVertexAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent
 from dotenv import load_dotenv
 import os
@@ -9,9 +9,12 @@ import os
 load_dotenv()
 
 async def main(platform_name, platform_link):
+    GEMINI_API_KEY="AIzaSyBmJ6Tdmx01qz_mprCgSxuiajZWB9LAwfU"
 
     print("Control comes to 1")
-    llm = ChatVertexAI(model="gemini-1.5-flash")
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash",verbose=True,temperature=0.1, google_api_key=GEMINI_API_KEY
+    )
     
     task = """
     Visit the page 'https://www.timeanddate.com/date/duration.html' and return the page title as text.

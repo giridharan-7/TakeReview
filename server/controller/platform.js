@@ -73,35 +73,32 @@ const fetchReviewsForPlatform = async (platformData) => {
 
     return new Promise((resolve, reject) => {
         try {
-            console.log("Control going to browser-use ___________")
+            console.log("Control going to browser-use ___________");
+            console.log(`${platformName} ------- ${platformLink}`);
+        
             const pythonProcess = spawn("python3", ["agent/browserUse.py", platformName, platformLink]);
-            console.log("Control ends here")
-
-            let result = "";
-            let errorOutput = "";
-
+        
             pythonProcess.stdout.on("data", (data) => {
-                result += data.toString();
+                console.log(`Python Output: ${data}`);
             });
-
-            pythonProcess.stderr.on("data", (data) => {
-                errorOutput += data.toString();
+        
+            pythonProcess.stderr.on("data", (error) => {
+                console.error(`Python Error: ${error}`);
             });
-
-            pythonProcess.on("close", (code) => {
-                if (code !== 0) {
-                    return reject(new Error(`Python script exited with code ${code}: ${errorOutput}`));
-                }
-
-                try {
-                    console.log(result)
-                    console.log("----------++++++")
-                    const reviews = JSON.parse(result.trim());
-                    resolve(reviews);
-                } catch (parseError) {
-                    reject(new Error(`Failed to parse Python output: ${parseError.message}`));
+        
+            pythonProcess.on("error", (err) => {
+                console.error(`Failed to start Python process: ${err.message}`);
+            });
+        
+            pythonProcess.on("exit", (code) => {
+                if (code === 0) {
+                    console.log("Python script executed successfully.");
+                } else {
+                    console.error(`Python script exited with code ${code}.`);
                 }
             });
+        
+            console.log("Control ends here");
         } catch (error) {
             reject(error);
         }
