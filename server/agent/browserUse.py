@@ -9,7 +9,7 @@ import os
 load_dotenv()
 
 async def main(platform_name, platform_link):
-    GEMINI_API_KEY="AIzaSyBmJ6Tdmx01qz_mprCgSxuiajZWB9LAwfU"
+    GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
 
     print("Control comes to 1")
     llm = ChatGoogleGenerativeAI(
@@ -17,11 +17,13 @@ async def main(platform_name, platform_link):
     )
     
     task = """
-    Visit the page 'https://www.timeanddate.com/date/duration.html' and return the page title as text.
+    go to https://www.verizon.com/support/knowledge-base-211621/ and return the title of the page
     """
     
     agent = Agent(task=task, llm=llm)
     result = await agent.run()
+
+    print(result,"------")
 
     if isinstance(result, dict):
         serialized_result = result
@@ -31,7 +33,7 @@ async def main(platform_name, platform_link):
             "output": str(result.output) if hasattr(result, "output") else None
         }
 
-    print(json.dumps(serialized_result))
+    print(json.dumps(serialized_result), "+++++++")
 
 if __name__ == "__main__":
     platform_name = sys.argv[1]
