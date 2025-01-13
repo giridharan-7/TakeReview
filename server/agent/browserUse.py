@@ -16,14 +16,18 @@ async def main(platform_name, platform_link):
         model="gemini-1.5-flash",verbose=True,temperature=0.1, google_api_key=GEMINI_API_KEY
     )
     
-    task = """
-    go to https://www.verizon.com/support/knowledge-base-211621/ and return the title of the page
+    task = f"""
+    Visit the platform named '{platform_name}' at the link '{platform_link}'.
+    Extract all reviews from the page. Each review should include:
+    - The title of the review
+    - The body content
+    - The star rating (if available)
+    Return the data as a JSON array.
     """
     
     agent = Agent(task=task, llm=llm)
     result = await agent.run()
 
-    print(result,"------")
 
     if isinstance(result, dict):
         serialized_result = result
