@@ -11,7 +11,6 @@ load_dotenv()
 async def main(platform_name, platform_link):
     GEMINI_API_KEY=os.getenv("GEMINI_API_KEY")
 
-    print("Control comes to 1")
     llm = ChatGoogleGenerativeAI(
         model="gemini-1.5-flash",verbose=True,temperature=0.1, google_api_key=GEMINI_API_KEY
     )
@@ -22,7 +21,7 @@ async def main(platform_name, platform_link):
     - The title of the review
     - The body content
     - The star rating (if available)
-    Return the data as a JSON array.
+    Return the review as a JSON array.
     """
     
     agent = Agent(task=task, llm=llm)

@@ -96,7 +96,8 @@ const Platform = sequelize.define('Platform', {
     },
     platform_link: {
         type: DataTypes.STRING(1000),
-        allowNull: false
+        allowNull: false,
+        unique: true, // Made platform_link unique
     },
     instant_count: {
         type: DataTypes.INTEGER,
@@ -114,14 +115,62 @@ const Platform = sequelize.define('Platform', {
         type: DataTypes.DATE,
         allowNull: true,
     },
-})
+}, {
+    tableName: 'platform',
+    timestamps: false
+});
 
+// Review table definition
+const Review = sequelize.define('Review', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    account_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Account,
+            key: 'id',
+        },
+    },
+    platform_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: Platform,
+            key: 'id',
+        },
+    },
+    review: {
+        type: DataTypes.JSON, // Review stored as JSON
+        allowNull: false,
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+    },
+    updated_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+}, {
+    tableName: 'review',
+    timestamps: false
+});
+
+// Associations
 UserOtp.belongsTo(Account, { foreignKey: 'account_id' });
 
 Platform.belongsTo(Account, { foreignKey: 'account_id' });
 
+Review.belongsTo(Account, { foreignKey: 'account_id' });
+Review.belongsTo(Platform, { foreignKey: 'platform_id' });
+
+// Sync database
 sequelize.sync({ force: false })
-    .then(() => console.log('Database connected'))
+    .then(() => console.log('Database connected and models synced'))
     .catch((error) => console.error('Database connection error:', error));
 
-module.exports = { sequelize, Account, UserOtp, Platform };
+module.exports = { sequelize, Account, UserOtp, Platform, Review };

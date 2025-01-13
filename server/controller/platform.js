@@ -2,6 +2,7 @@ const { Platform, Account } = require("../models/db");
 const connectRabbitMq = require("../queue/messageSender");
 
 const { spawn } = require("child_process");
+const { Review } = require("../models/db"); // Import the Review model
 
 const QUEUE_NAME = 'platform_jobs';
 
@@ -52,20 +53,43 @@ const addPlatform = async (req, res) => {
 }
 
 const getReviews = async (req, res) => {
-
     try {
+        const accountId = req.cookies?.account_id;
 
-        // first of all see the platfrom created time is <10sec
+        if (!accountId) {
+            return res.status(401).json({ success: false, message: "Unauthorized: No account ID in cookies." });
+        }
 
-        // if it is <10sec -> check instant_ready -> if it is true -> return data from elastic 
+        const { platformId } = req.body;
 
-        // if it is >10sec -> hit the postgres local db and get the data
+        if (!platformId) {
+            return res.status(400).json({ success: false, message: "Bad request: Platform ID is required." });
+        }
 
-        
+        const platform = await Platform.findOne({
+            where: { id: platformId, account_id: accountId },
+        });
+
+        if (!platform) {
+            return res.status(404).json({ success: false, message: "Platform not found or unauthorized access." });
+        }
+
+        const reviews = await Review.findAll({
+            where: { platform_id: platformId },
+            attributes: ["id", "review", "created_at"], 
+            order: [["created_at", "DESC"]],
+        });
+
+        if (reviews.length === 0) {
+            return res.status(200).json({ success: true, message: "No reviews found for this platform.", reviews: [] });
+        }
+
+        return res.status(200).json({ success: true, reviews });
     } catch (error) {
-        
+        console.error("Error fetching reviews:", error);
+        return res.status(500).json({ success: false, message: "Internal server error." });
     }
-}
+};
 
 const fetchReviewsForPlatform = async (platformData) => {
     const platformName = platformData.platformName;
@@ -77,27 +101,51 @@ const fetchReviewsForPlatform = async (platformData) => {
             console.log(`${platformName} ------- ${platformLink}`);
         
             const pythonProcess = spawn("python3", ["agent/browserUse.py", platformName, platformLink]);
-        
+            let pythonOutput = "";
+
+            // Capture data from Python stdout
             pythonProcess.stdout.on("data", (data) => {
-                console.log(`Python Output: ${data}`);
+                pythonOutput += data.toString();
             });
-        
+
+            // Capture error data from Python stderr
             pythonProcess.stderr.on("data", (error) => {
                 console.error(`Python Error: ${error}`);
             });
-        
-            pythonProcess.on("error", (err) => {
-                console.error(`Failed to start Python process: ${err.message}`);
-            });
-        
-            pythonProcess.on("exit", (code) => {
+
+            // Handle process exit
+            pythonProcess.on("exit", async (code) => {
                 if (code === 0) {
                     console.log("Python script executed successfully.");
+                    try {
+                        const reviews = JSON.parse(pythonOutput); // Parse JSON data
+
+                        // Insert reviews into the database
+                        for (const review of reviews) {
+                            await Review.create({
+                                account_id: platformData.accountId,
+                                platform_id: platformData.platformId,
+                                review: review, // Review JSON
+                            });
+                        }
+
+                        console.log("Reviews successfully stored in the database.");
+                        resolve({ success: true, message: "Reviews fetched and stored." });
+                    } catch (err) {
+                        console.error("Error parsing or storing reviews:", err);
+                        reject(err);
+                    }
                 } else {
                     console.error(`Python script exited with code ${code}.`);
+                    reject(new Error("Python script failed."));
                 }
             });
-        
+
+            pythonProcess.on("error", (err) => {
+                console.error(`Failed to start Python process: ${err.message}`);
+                reject(err);
+            });
+
             console.log("Control ends here");
         } catch (error) {
             reject(error);
