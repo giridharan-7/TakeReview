@@ -2,7 +2,7 @@ const { Platform, Account } = require("../models/db");
 const connectRabbitMq = require("../queue/messageSender");
 
 const { spawn } = require("child_process");
-const { Review } = require("../models/db"); // Import the Review model
+const { Review } = require("../models/db");
 
 const QUEUE_NAME = 'platform_jobs';
 

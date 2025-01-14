@@ -97,7 +97,7 @@ const Platform = sequelize.define('Platform', {
     platform_link: {
         type: DataTypes.STRING(1000),
         allowNull: false,
-        unique: true, // Made platform_link unique
+        unique: true,
     },
     instant_count: {
         type: DataTypes.INTEGER,
@@ -120,7 +120,6 @@ const Platform = sequelize.define('Platform', {
     timestamps: false
 });
 
-// Review table definition
 const Review = sequelize.define('Review', {
     id: {
         type: DataTypes.INTEGER,
@@ -160,7 +159,6 @@ const Review = sequelize.define('Review', {
     timestamps: false
 });
 
-// Associations
 UserOtp.belongsTo(Account, { foreignKey: 'account_id' });
 
 Platform.belongsTo(Account, { foreignKey: 'account_id' });
@@ -168,7 +166,6 @@ Platform.belongsTo(Account, { foreignKey: 'account_id' });
 Review.belongsTo(Account, { foreignKey: 'account_id' });
 Review.belongsTo(Platform, { foreignKey: 'platform_id' });
 
-// Sync database
 sequelize.sync({ force: false })
     .then(() => console.log('Database connected and models synced'))
     .catch((error) => console.error('Database connection error:', error));
